@@ -99,7 +99,7 @@ class CustomersController extends DashboardController
      * delete a customer
      *
      * @param int customer id
-     * @return json
+     * @return array
      */
     public function delete( $id )
     {

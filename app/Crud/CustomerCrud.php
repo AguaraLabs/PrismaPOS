@@ -105,7 +105,7 @@ class CustomerCrud extends CrudService
         'purchases_amount' => CurrencyCast::class,
         'gender' => GenderCast::class,
         'created_at' => DateCast::class,
-        'updated_at' => DateCast::class,
+        'updated_at' => DateCast::class
     ];
 
     /**
@@ -493,6 +493,7 @@ class CustomerCrud extends CrudService
             CrudTable::column( __( 'Owed Amount' ), 'owed_amount' ),
             CrudTable::column( __( 'Purchase Amount' ), 'purchases_amount' ),
             CrudTable::column( __( 'Author' ), 'user_username' ),
+            CrudTable::column( __('Deleted'), 'deleted_at')
         );
     }
 

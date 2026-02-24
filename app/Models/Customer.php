@@ -8,6 +8,7 @@ use App\Traits\NsCustomerAddress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,22 +27,26 @@ use Illuminate\Support\Facades\DB;
  * @property float owed_amount
  * @property float credit_limit_amount
  * @property float account_amount
+ * @property mixed $deleted_at
  */
 class Customer extends UserScope
 {
-    use HasFactory, NsCustomerAddress;
+    use HasFactory, NsCustomerAddress, SoftDeletes;
 
     protected $table = 'nexopos_' . 'users';
+
+    protected $casts = ['deleted_at' => 'datetime'];
+    protected $appends = ['deleted'];
 
     public function setDependencies()
     {
         return [
-            Order::class => ClassesModel::dependant(
+            /*Order::class => ClassesModel::dependant(
                 local_name: 'name',
                 local_index: 'id',
                 foreign_name: 'code',
                 foreign_index: 'customer_id',
-            ),
+            ),*/
         ];
     }
 
@@ -58,6 +63,11 @@ class Customer extends UserScope
 
             CustomerModelBootedEvent::dispatch( $builder );
         } );
+    }
+
+    public function getDeletedAttribute(): string
+    {
+        return $this->deleted_at ? __('Si') : __('No');
     }
 
     /**

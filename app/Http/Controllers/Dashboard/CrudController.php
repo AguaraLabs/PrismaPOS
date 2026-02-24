@@ -37,7 +37,7 @@ class CrudController extends DashboardController
      * provided by an Ajax Request
      *
      * @param void
-     * @return view
+     * @return void
      */
     public function crudDelete( $namespace, $id )
     {
@@ -60,7 +60,8 @@ class CrudController extends DashboardController
             /**
              * the callback should return an empty value to proceed.
              */
-            if ( ! empty( $response = $resource->beforeDelete( $namespace, $id, $model ) ) ) {
+            $skipNamespace = array('ns.customers');
+            if (!in_array($namespace, $skipNamespace) && ! empty( $response = $resource->beforeDelete( $namespace, $id, $model ) ) ) {
                 return $response;
             }
         }
