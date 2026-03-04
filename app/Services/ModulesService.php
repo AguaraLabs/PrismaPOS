@@ -199,9 +199,10 @@ class ModulesService
 
             if ( count( $locales ) > 0 ) {
                 $config[ 'description' ] = collect( $locales )->mapWithKeys( function ( $locale ) {
-                    $locale = (array) $locale;
+                    $lang = (string) $locale['lang'];
+                    $text = trim((string) $locale);
 
-                    return [ $locale[ '@attributes' ][ 'lang' ] => $locale[ 0 ] ];
+                    return [$lang => $text];
                 } );
             } else {
                 // Fallback: if there is a <description> element without <locale> children, treat its text as English.
