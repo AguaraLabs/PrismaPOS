@@ -2960,5 +2960,8 @@
     "{store_email}: displays the store email.": "{store_email}: muestra el correo electrónico de la tienda.",
     "{store_name}: displays the store name.": "{store_name}: muestra el nombre de la tienda.",
     "{store_phone}: displays the store phone number.": "{store_phone}: muestra el número de teléfono de la tienda.",
-    "Will be used for pin login. Should consist of digits and not exceed 4 digits.": "Se utilizará para acceder usando un PIN, se recomienda que no sea mayor a 4 digitos."
+    "Will be used for pin login. Should consist of digits and not exceed 4 digits.": "Se utilizará para acceder usando un PIN, se recomienda que no sea mayor a 4 digitos.",
+    "Search category": "Buscar categoria",
+    "Search service": "Buscar servicio",
+    "No categories assigned": "Ninguna categoria asignada"
 }
