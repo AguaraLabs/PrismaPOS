@@ -754,8 +754,8 @@ class OrdersService
              * @todo add a verification to enforce address to be attached
              * to the processed order.
              */
-            if ( isset( $fields[ 'addresses' ][ $type ][ 'id' ] ) ) {
-                $orderShipping = OrderAddress::find( $fields[ 'addresses' ][ $type ][ 'id' ] );
+            if ( isset( $fields['addresses'][$type]['id'] ) ) {
+                $orderShipping = OrderAddress::find( $fields[ 'addresses' ][ $type ][ 'id' ] ) ?? new OrderAddress;
             } else {
                 $orderShipping = new OrderAddress;
             }
@@ -764,6 +764,10 @@ class OrdersService
 
             if ( ! empty( $fields['addresses'][$type] ) ) {
                 foreach ( $fields['addresses'][$type] as $key => $value ) {
+                    if ( $key === 'id' && ! $orderShipping->exists ) {
+                        continue;
+                    }
+
                     $orderShipping->$key = $value;
                 }
             }
