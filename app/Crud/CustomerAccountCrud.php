@@ -82,12 +82,14 @@ class CustomerAccountCrud extends CrudService
 
     /**
      * Adding relation
-     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author' ]
+     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author_id' ]
      *
      * @param  array
      */
     public $relations = [
-        [ 'nexopos_users as user', 'user.id', '=', 'nexopos_customers_account_history.author' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         'leftJoin' => [
             [ 'nexopos_orders as order', 'order.id', '=', 'nexopos_customers_account_history.order_id' ],
         ],
@@ -202,7 +204,7 @@ class CustomerAccountCrud extends CrudService
             ], [
                 'type' => 'select',
                 'label' => __( 'Author' ),
-                'name' => 'nexopos_customers_account_history.author',
+                'name' => 'nexopos_customers_account_history.author_id',
                 'description' => __( 'Restrict the records by the author.' ),
                 'options' => Helper::toJsOptions( $UserClass::get(), [ 'id', 'username' ] ),
             ],
@@ -368,12 +370,6 @@ class CustomerAccountCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -411,12 +407,6 @@ class CustomerAccountCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -449,11 +439,7 @@ class CustomerAccountCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

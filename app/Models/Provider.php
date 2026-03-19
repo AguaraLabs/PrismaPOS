@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 /**
  * @property int            $id
  * @property string         $uuid
- * @property int            $author
+ * @property int            $author_id
  * @property string         $description
  * @property float          $amount_paid
  * @property \Carbon\Carbon $updated_at
@@ -37,5 +37,10 @@ class Provider extends NsModel
     public function procurements()
     {
         return $this->hasMany( Procurement::class );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
     }
 }

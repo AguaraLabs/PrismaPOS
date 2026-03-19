@@ -70,7 +70,9 @@ class RegisterHistoryCrud extends CrudService
      * @param  array
      */
     public $relations = [
-        [ 'nexopos_users as user', 'user.id', '=', 'nexopos_registers_history.author' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
     ];
 
     /**
@@ -203,9 +205,9 @@ class RegisterHistoryCrud extends CrudService
                             'value' => $entry->action ?? '',
                         ], [
                             'type' => 'text',
-                            'name' => 'author',
+                            'name' => 'author_id',
                             'label' => __( 'Author' ),
-                            'value' => $entry->author ?? '',
+                            'value' => $entry->author_id ?? '',
                         ], [
                             'type' => 'text',
                             'name' => 'value',
@@ -267,12 +269,6 @@ class RegisterHistoryCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -310,12 +306,6 @@ class RegisterHistoryCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -348,11 +338,7 @@ class RegisterHistoryCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

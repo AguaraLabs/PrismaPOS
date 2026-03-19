@@ -6,6 +6,7 @@ use App\Classes\CrudForm;
 use App\Classes\FormInput;
 use App\Models\Unit;
 use App\Models\UnitGroup;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\Helper;
@@ -52,7 +53,9 @@ class UnitCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_units.author', '=', 'user.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_units_groups as group', 'nexopos_units.group_id', '=', 'group.id' ],
     ];
 
@@ -229,8 +232,6 @@ class UnitCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -268,8 +269,6 @@ class UnitCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -292,9 +291,7 @@ class UnitCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model )
     {
-        if ( $namespace == 'ns.units' ) {
-            $this->allowedTo( 'delete' );
-        }
+        // ...
     }
 
     /**

@@ -68,7 +68,7 @@ class TransactionsHistoryCrud extends CrudService
 
     /**
      * Adding relation
-     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author' ]
+     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author_id' ]
      *
      * @param array
      */
@@ -76,7 +76,7 @@ class TransactionsHistoryCrud extends CrudService
         'leftJoin' => [
             [ 'nexopos_transactions as transaction', 'transaction.id', '=', 'nexopos_transactions_histories.transaction_id' ],
         ],
-        [ 'nexopos_users as users', 'users.id', '=', 'nexopos_transactions_histories.author' ],
+        [ 'nexopos_users as users', 'users.id', '=', 'nexopos_transactions_histories.author_id' ],
         [ 'nexopos_transactions_accounts as transactions_accounts', 'transactions_accounts.id', '=', 'nexopos_transactions_histories.transaction_account_id' ],
     ];
 
@@ -232,12 +232,6 @@ class TransactionsHistoryCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -275,12 +269,6 @@ class TransactionsHistoryCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -313,11 +301,7 @@ class TransactionsHistoryCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

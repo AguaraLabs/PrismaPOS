@@ -8,6 +8,7 @@ use App\Casts\DiscountTypeCast;
 use App\Classes\CrudTable;
 use App\Exceptions\NotAllowedException;
 use App\Models\OrderCoupon;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use Illuminate\Http\Request;
@@ -73,12 +74,14 @@ class CouponOrderHistoryCrud extends CrudService
 
     /**
      * Adding relation
-     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author' ]
+     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author_id' ]
      *
      * @param array
      */
     public $relations = [
-        [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders_coupons.author' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_orders as order', 'order.id', '=', 'nexopos_orders_coupons.order_id' ],
         [ 'nexopos_users as customer', 'customer.id', '=', 'order.customer_id' ],
     ];
@@ -214,12 +217,6 @@ class CouponOrderHistoryCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -257,12 +254,6 @@ class CouponOrderHistoryCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -285,22 +276,7 @@ class CouponOrderHistoryCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model )
     {
-        if ( $namespace == 'ns.coupons-orders-hitory' ) {
-            /**
-             *  Perform an action before deleting an entry
-             *  In case something wrong, this response can be returned
-             *
-             *  return response([
-             *      'status'    =>  'danger',
-             *      'message'   =>  __( 'You\re not allowed to do that.' )
-             *  ], 403 );
-             **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
-        }
+        // ...
     }
 
     /**

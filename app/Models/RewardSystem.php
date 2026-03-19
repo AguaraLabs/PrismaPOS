@@ -27,4 +27,9 @@ class RewardSystem extends NsModel
     {
         return $this->hasOne( Coupon::class, 'id', 'coupon_id' );
     }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
+    }
 }

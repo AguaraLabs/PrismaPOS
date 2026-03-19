@@ -99,7 +99,7 @@ class TransactionService
                 $counterTransaction->value = $transactionHistory->value;
                 $counterTransaction->transaction_id = $transactionHistory->transaction_id;
                 $counterTransaction->operation = $operation;
-                $counterTransaction->author = $transactionHistory->author;
+                $counterTransaction->author_id = $transactionHistory->author_id;
                 $counterTransaction->name = $transactionHistory->name;
                 $counterTransaction->status = TransactionHistory::STATUS_ACTIVE;
                 $counterTransaction->trigger_date = ns()->date->toDateTimeString();
@@ -163,7 +163,7 @@ class TransactionService
             $transaction->$field = $value;
         }
 
-        $transaction->author = Auth::id();
+        $transaction->author_id = Auth::id();
         $transaction->save();
 
         event( new TransactionAfterCreatedEvent( $transaction, request()->all() ) );
@@ -184,7 +184,7 @@ class TransactionService
                 $transaction->$field = $value;
             }
 
-            $transaction->author = Auth::id();
+            $transaction->author_id = Auth::id();
             $transaction->save();
 
             event( new TransactionAfterUpdatedEvent( $transaction, request()->all() ) );
@@ -221,10 +221,10 @@ class TransactionService
     }
 
     /**
-     * Delete an transction using the
+     * Delete an transaction using the
      * provided id
      *
-     * @param int transction id
+     * @param int transaction id
      * @return array
      */
     public function deleteTransaction( Transaction $transaction )
@@ -234,7 +234,7 @@ class TransactionService
 
         return [
             'status' => 'success',
-            'message' => __( 'The transction has been correctly deleted.' ),
+            'message' => __( 'The transaction has been correctly deleted.' ),
         ];
     }
 
@@ -376,7 +376,7 @@ class TransactionService
             $account->$field = $value;
         }
 
-        $account->author = ns()->getValidAuthor();
+        $account->author_id = ns()->getValidAuthor();
         $account->save();
 
         return [
@@ -398,7 +398,7 @@ class TransactionService
             $account->$field = $value;
         }
 
-        $account->author = Auth::id();
+        $account->author_id = Auth::id();
         $account->save();
 
         return [
@@ -527,7 +527,7 @@ class TransactionService
         $history->value = $transaction->value;
         $history->transaction_id = $transaction->id;
         $history->operation = $mainAccount[ 'increase' ]; // if the operation is not defined, by default is a "debit"
-        $history->author = $transaction->author;
+        $history->author_id = $transaction->author_id;
         $history->name = $transaction->name;
         $history->status = TransactionHistory::STATUS_ACTIVE;
         $history->trigger_date = ns()->date->toDateTimeString();
@@ -561,7 +561,7 @@ class TransactionService
                     $history->value = $transaction->value;
                     $history->transaction_id = $transaction->id;
                     $history->operation = 'debit';
-                    $history->author = $transaction->author;
+                    $history->author_id = $transaction->author_id;
                     $history->trigger_date = ns()->date->toDateTimeString();
                     $history->type = $transaction->type;
                     $history->status = TransactionHistory::STATUS_ACTIVE;
@@ -662,7 +662,7 @@ class TransactionService
 
                 return [
                     'status' => 'error',
-                    'message' => sprintf( __( 'The transactions "%s" hasn\'t been proceesed, as it\'s out of date.' ), $transaction->name ),
+                    'message' => sprintf( __( 'The transactions "%s" hasn\'t been processed, as it\'s out of date.' ), $transaction->name ),
                 ];
             } );
 
@@ -673,7 +673,7 @@ class TransactionService
             'data' => $processStatus->toArray(),
             'message' => $successFulProcesses->count() === $processStatus->count() ?
                 __( 'The process has been correctly executed and all transactions has been processed.' ) :
-                    sprintf( __( 'The process has been executed with some failures. %s/%s process(es) has successed.' ), $successFulProcesses->count(), $processStatus->count() ),
+                    sprintf( __( 'The process has been executed with some failures. %s/%s process(es) succeeded.' ), $successFulProcesses->count(), $processStatus->count() ),
         ];
     }
 
@@ -779,7 +779,7 @@ class TransactionService
         $operation = $accounts[ $account->category_identifier ][ $rule->action ];
 
         $transactionHistory->value = $procurement->cost;
-        $transactionHistory->author = $procurement->author;
+        $transactionHistory->author_id = $procurement->author_id;
         $transactionHistory->transaction_account_id = $account->id;
         $transactionHistory->operation = $operation;
         $transactionHistory->type = Transaction::TYPE_DIRECT;
@@ -967,7 +967,7 @@ class TransactionService
         $transactionHistory = new TransactionHistory;
         $transactionHistory->name = $name;
         $transactionHistory->value = $order->$value;
-        $transactionHistory->author = $order->author;
+        $transactionHistory->author_id = $order->author_id;
         $transactionHistory->transaction_account_id = $account->id;
         $transactionHistory->operation = $operation;
         $transactionHistory->type = Transaction::TYPE_INDIRECT;

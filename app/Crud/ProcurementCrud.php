@@ -4,6 +4,7 @@ namespace App\Crud;
 
 use App\Exceptions\NotAllowedException;
 use App\Models\Procurement;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\ProviderService;
@@ -43,7 +44,9 @@ class ProcurementCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as users', 'nexopos_procurements.author', '=', 'users.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_providers as providers', 'nexopos_procurements.provider_id', '=', 'providers.id' ],
     ];
 
@@ -153,9 +156,9 @@ class ProcurementCrud extends CrudService
                     'fields' => [
                         [
                             'type' => 'text',
-                            'name' => 'author',
+                            'name' => 'author_id',
                             'label' => __( 'Author' ),
-                            'value' => $entry->author ?? '',
+                            'value' => $entry->author_id ?? '',
                         ], [
                             'type' => 'text',
                             'name' => 'created_at',
@@ -250,8 +253,6 @@ class ProcurementCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -289,8 +290,6 @@ class ProcurementCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -314,7 +313,7 @@ class ProcurementCrud extends CrudService
     public function beforeDelete( $namespace, $id, $model )
     {
         if ( $namespace == 'ns.procurements' ) {
-            $this->allowedTo( 'delete' );
+            //
         }
     }
 
@@ -366,7 +365,7 @@ class ProcurementCrud extends CrudService
                 '$direction' => '',
                 '$sort' => false,
             ],
-            'users_username' => [
+            'user_username' => [
                 'label' => __( 'Author' ),
                 '$direction' => '',
                 '$sort' => false,

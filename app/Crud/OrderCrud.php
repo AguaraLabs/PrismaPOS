@@ -61,8 +61,10 @@ class OrderCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as author', 'nexopos_orders.author', '=', 'author.id' ],
-        [ 'nexopos_users as customer', 'nexopos_orders.customer_id', '=', 'customer.id' ],
+        'join' => [
+            'author' => [ User::class, 'user' ],
+            [ Customer::class, 'customer' ],
+        ],
     ];
 
     public $pick = [
@@ -159,7 +161,7 @@ class OrderCrud extends CrudService
             ], [
                 'type' => 'select',
                 'label' => __( 'Author' ),
-                'name' => 'nexopos_orders.author',
+                'name' => 'nexopos_orders.author_id',
                 'description' => __( 'Filter the orders by the author.' ),
                 'options' => Helper::toJsOptions( $UserClass::get(), [ 'id', 'username' ] ),
             ], [
@@ -245,8 +247,6 @@ class OrderCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -284,8 +284,6 @@ class OrderCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -309,8 +307,6 @@ class OrderCrud extends CrudService
     public function beforeDelete( $namespace, $id, $model )
     {
         if ( $namespace == 'ns.orders' ) {
-            $this->allowedTo( 'delete' );
-
             /**
              * @var OrdersService
              */
@@ -435,7 +431,7 @@ class OrderCrud extends CrudService
             if ( $this->permissions[ 'delete' ] !== false ) {
                 ns()->restrict( $this->permissions[ 'delete' ] );
             } else {
-                throw new NotAllowedException( __( 'Deleting has been explicitely disabled on this component.' ) );
+                throw new NotAllowedException( __( 'Deleting has been explicitly disabled on this component.' ) );
             }
 
             $status = [

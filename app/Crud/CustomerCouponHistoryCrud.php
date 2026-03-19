@@ -4,6 +4,7 @@ namespace App\Crud;
 
 use App\Exceptions\NotAllowedException;
 use App\Models\OrderCoupon;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use Illuminate\Http\Request;
@@ -63,14 +64,16 @@ class CustomerCouponHistoryCrud extends CrudService
 
     /**
      * Adding relation
-     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author' ]
+     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author_id' ]
      *
      * @param array
      */
     public $relations = [
         [ 'nexopos_orders as order', 'order.id', '=', 'nexopos_orders_coupons.order_id' ],
         [ 'nexopos_coupons as coupon', 'coupon.id', '=', 'nexopos_orders_coupons.coupon_id' ],
-        [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders_coupons.author' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
     ];
 
     /**
@@ -205,12 +208,6 @@ class CustomerCouponHistoryCrud extends CrudService
      */
     public function beforePost( array $request ): array
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -241,12 +238,6 @@ class CustomerCouponHistoryCrud extends CrudService
      */
     public function beforePut( array $request, OrderCoupon $entry ): array
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -275,11 +266,7 @@ class CustomerCouponHistoryCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

@@ -3,6 +3,7 @@
 namespace App\Crud;
 
 use App\Models\UnitGroup;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\UsersService;
@@ -47,7 +48,9 @@ class UnitGroupCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_units_groups.author', '=', 'user.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
     ];
 
     public $pick = [
@@ -180,8 +183,6 @@ class UnitGroupCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -219,8 +220,6 @@ class UnitGroupCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -243,9 +242,7 @@ class UnitGroupCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model )
     {
-        if ( $namespace == 'ns.units-groups' ) {
-            $this->allowedTo( 'delete' );
-        }
+        // ...
     }
 
     /**

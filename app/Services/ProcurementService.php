@@ -147,7 +147,7 @@ class ProcurementService
                 $procurement->timestamps = false;
             }
 
-            $procurement->author = Auth::id();
+            $procurement->author_id = Auth::id();
             $procurement->cost = 0;
             $procurement->save();
         } );
@@ -229,7 +229,7 @@ class ProcurementService
                 $procurement->timestamps = false;
             }
 
-            $procurement->author = Auth::id();
+            $procurement->author_id = Auth::id();
             $procurement->cost = 0;
             $procurement->save();
         } );
@@ -453,7 +453,7 @@ class ProcurementService
             $procurementProduct->total_purchase_price = $procuredProduct[ 'total_purchase_price' ];
             $procurementProduct->convert_unit_id = $procuredProduct[ 'convert_unit_id' ] ?? null;
             $procurementProduct->unit_id = $procuredProduct[ 'unit_id' ];
-            $procurementProduct->author = Auth::id();
+            $procurementProduct->author_id = Auth::id();
             $procurementProduct->save();
             $procurementProduct->barcode = str_pad( $product->barcode, 5, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementProduct->unit_id, 3, '0', STR_PAD_LEFT ) . '-' . str_pad( $procurementProduct->id, 3, '0', STR_PAD_LEFT );
             $procurementProduct->save();
@@ -506,7 +506,7 @@ class ProcurementService
             'quantity' => $procurementProduct->quantity,
             'purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->get(),
             'total_purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->multiplyBy( $procurementProduct->quantity )->get(),
-            'author' => Auth::id(),
+            'author_id' => Auth::id(),
             'name' => $item->name,
         ];
 
@@ -541,7 +541,7 @@ class ProcurementService
             'quantity' => $procurementProduct->quantity,
             'purchase_price' => $this->currency->value( $procurementProduct->purchase_price )->get(),
             'total_price' => $this->currency->value( $procurementProduct->purchase_price )->multiplyBy( $procurementProduct->quantity )->get(),
-            'author' => Auth::id(),
+            'author_id' => Auth::id(),
             'name' => $item->name,
         ];
 
@@ -568,7 +568,7 @@ class ProcurementService
                 $product->$field = $value;
             }
 
-            $product->author = Auth::id();
+            $product->author_id = Auth::id();
             $product->procurement_id = $procurement_id;
             $product->save();
 
@@ -709,7 +709,7 @@ class ProcurementService
             $procurementProduct->$field = $value;
         }
 
-        $procurementProduct->author = Auth::id();
+        $procurementProduct->author_id = Auth::id();
         $procurementProduct->save();
 
         return [
@@ -752,7 +752,7 @@ class ProcurementService
          */
         if ( $procurement->delivery_status === 'stocked' ) {
             /**
-             * if the product was'nt convered into a different unit
+             * if the product wasn't convered into a different unit
              * then we'll directly perform a stock adjustment on that product.
              */
             if ( ! empty( $procurementProduct->convert_unit_id ) ) {
@@ -1047,7 +1047,7 @@ class ProcurementService
 
         /**
          * We'll pull the last purchase
-         * price for the item retreived
+         * price for the item retrieved
          */
         $product->unit_quantities->each( function ( $unitQuantity ) use ( $product ) {
             $unitQuantity->load( 'unit' );

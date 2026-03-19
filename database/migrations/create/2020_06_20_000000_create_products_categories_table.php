@@ -27,8 +27,9 @@ return new class extends Migration
                 $table->boolean( 'displays_on_pos' )->default( true );
                 $table->unsignedBigInteger( 'scale_range_id' )->nullable();
                 $table->integer( 'total_items' )->default( 0 );
+                $table->integer( 'position' )->default( 0 );
                 $table->text( 'description' )->nullable();
-                $table->integer( 'author' );
+                $table->integer( 'author_id' );
                 $table->string( 'uuid' )->nullable();
                 $table->timestamps();
             } );

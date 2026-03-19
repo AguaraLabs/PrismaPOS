@@ -7,6 +7,8 @@ use App\Classes\Cache;
 use App\Classes\CrudScope;
 use App\Classes\Output;
 use App\Events\CrudActionEvent;
+use App\Events\CrudAfterPostEvent;
+use App\Events\CrudAfterPutEvent;
 use App\Events\CrudHookEvent;
 use App\Events\CrudReflectionInitialized;
 use App\Exceptions\NotAllowedException;
@@ -118,6 +120,13 @@ class CrudService
      * do be used while saving or updating an entry.
      */
     public $fillable = [];
+
+    /**
+     * Define fields that should be removed from every
+     * entry returned by getEntries. Takes precedence over
+     * (and is merged with) the model's own $hidden array.
+     */
+    protected $hidden = [];
 
     /**
      * Determine if the options column should display
@@ -309,10 +318,12 @@ class CrudService
         );
 
         if ( method_exists( $resource, 'beforePost' ) && ! $isEditing ) {
+            $resource->allowedTo( 'create' );
             $resource->beforePost( $unfiltredInputs, null, $inputs );
         }
 
         if ( method_exists( $resource, 'beforePut' ) && $isEditing ) {
+            $resource->allowedTo( 'edit' );
             $resource->beforePut( $unfiltredInputs, $entry, $inputs );
         }
 
@@ -358,13 +369,13 @@ class CrudService
             }
 
             /**
-             * If fillable is empty or if "author" is explicitly
+             * If fillable is empty or if "author_id" is explicitly
              * mentionned on the fillable array.
              */
             if ( empty( $fillable ) || (
-                in_array( 'author', $fillable )
+                in_array( 'author_id', $fillable )
             ) ) {
-                $entry->author = Auth::id();
+                $entry->author_id = Auth::id();
             }
 
             /**
@@ -409,7 +420,7 @@ class CrudService
                     }
 
                     $model->$localKey = $entry->$foreignKey;
-                    $model->author = Auth::id();
+                    $model->author_id = Auth::id();
                     $model->save();
                 }
             }
@@ -418,15 +429,23 @@ class CrudService
         /**
          * Create an event after crud POST
          */
-        if ( ! $isEditing && method_exists( $resource, 'afterPost' ) ) {
-            $resource->afterPost( $unfiltredInputs, $entry, $inputs );
+        if ( ! $isEditing ) {
+            if ( method_exists( $resource, 'afterPost' ) ) {
+                $resource->afterPost( $unfiltredInputs, $entry, $inputs );
+            }
+
+            CrudAfterPostEvent::dispatch( $resource, $unfiltredInputs, $entry );
         }
 
         /**
          * Create an event after crud POST
          */
-        if ( $isEditing && method_exists( $resource, 'afterPut' ) ) {
-            $resource->afterPut( $unfiltredInputs, $entry, $inputs );
+        if ( $isEditing ) {
+            if ( method_exists( $resource, 'afterPut' ) ) {
+                $resource->afterPut( $unfiltredInputs, $entry, $inputs );
+            }
+
+            CrudAfterPutEvent::dispatch( $resource, $unfiltredInputs, $entry );
         }
 
         return [
@@ -562,6 +581,171 @@ class CrudService
     }
 
     /**
+     * Normalises the CRUD's $relations array so that model-based entries
+     * (written as [ModelClass::class, 'methodName']) are expanded into the
+     * canonical 4-element SQL-join format that the query builder expects.
+     *
+     * Supports two model-based syntaxes inside a junction group:
+     *
+     *   // No explicit alias – SQL alias defaults to the method name ('user')
+     *   'leftJoin' => [
+     *       [ User::class, 'user' ],
+     *   ]
+     *
+     *   // Explicit alias as the array key – useful when the same model is
+     *   // joined twice or when you prefer a different name for the column prefix
+     *   'leftJoin' => [
+     *       'author'   => [ User::class, 'user' ],
+     *       'approver' => [ User::class, 'approvedBy' ],
+     *   ]
+     *
+     * A leading '@' on the key is stripped so that both 'author' and '@author'
+     * are equivalent (the '@' form is tolerated but discouraged).
+     *
+     * Raw-array relations are passed through unchanged for full backward-compatibility.
+     * The method also collects the $hidden fields declared on each related Eloquent model
+     * so they can be excluded from the SELECT at the column-listing step.
+     *
+     * @return array{0: array, 1: array<string, string[]>} [$normalizedRelations, $hiddenByAlias]
+     */
+    private function resolveRelations(): array
+    {
+        $normalized = [];
+        $hiddenByAlias = [];
+
+        foreach ( $this->getRelations() as $junction => $relation ) {
+            if ( is_numeric( $junction ) ) {
+                /**
+                 * Numeric key: either an old-style single raw entry
+                 *   ['table', 'fk', '=', 'pk']
+                 * or a new model-based single entry
+                 *   [User::class, 'methodName']   (defaults to leftJoin)
+                 */
+                if (
+                    isset( $relation[0] ) &&
+                    is_string( $relation[0] ) &&
+                    class_exists( $relation[0] ) &&
+                    is_subclass_of( $relation[0], \Illuminate\Database\Eloquent\Model::class )
+                ) {
+                    $junctionType = $relation[2] ?? 'leftJoin';
+                    // Numeric outer key: no alias override, falls back to method name.
+                    [ $rawRelation, $hidden ] = $this->expandModelRelation( $relation[0], $relation[1] );
+                    $hiddenByAlias[$relation[1]] = $hidden;
+                    $normalized[$junctionType][] = $rawRelation;
+                } else {
+                    // Old raw format – keep as-is.
+                    $normalized[$junction] = $relation;
+                }
+            } else {
+                /**
+                 * Junction-keyed group, e.g.:
+                 *   'leftJoin' => [ 'author' => [User::class, 'user'], ... ]
+                 * or the existing raw group:
+                 *   'leftJoin' => [ ['table as alias', 'fk', '=', 'pk'] ]
+                 */
+                $resolvedGroup = [];
+
+                foreach ( $relation as $aliasKey => $entry ) {
+                    if (
+                        isset( $entry[0] ) &&
+                        is_string( $entry[0] ) &&
+                        class_exists( $entry[0] ) &&
+                        is_subclass_of( $entry[0], \Illuminate\Database\Eloquent\Model::class )
+                    ) {
+                        /**
+                         * Determine the SQL alias:
+                         *   - String key (e.g. 'author' or '@author') → use it as the alias.
+                         *   - Numeric key → fall back to the method name (second element).
+                         * A leading '@' is stripped so both forms are accepted.
+                         */
+                        $explicitAlias = is_numeric( $aliasKey )
+                            ? null
+                            : ltrim( (string) $aliasKey, '@' );
+
+                        [ $rawRelation, $hidden ] = $this->expandModelRelation( $entry[0], $entry[1], $explicitAlias );
+                        $resolvedAlias = $explicitAlias ?? $entry[1];
+                        $hiddenByAlias[$resolvedAlias] = $hidden;
+                        $resolvedGroup[] = $rawRelation;
+                    } else {
+                        $resolvedGroup[] = $entry;
+                    }
+                }
+
+                $normalized[$junction] = $resolvedGroup;
+            }
+        }
+
+        return [ $normalized, $hiddenByAlias ];
+    }
+
+    /**
+     * Expands a single model-based relation entry into the canonical
+     * 4-element join array expected by the query builder, and returns
+     * the $hidden fields declared on the related Eloquent model.
+     *
+     * Only BelongsTo and HasOne relations are supported; attempting to use
+     * HasMany or BelongsToMany will throw an exception.
+     *
+     * @param  string                       $modelClass    Fully-qualified class name of the related model.
+     * @param  string                       $methodName    Name of the relationship method on $this->model.
+     * @param  string|null                  $explicitAlias SQL alias for the joined table; defaults to $methodName.
+     * @return array{0: array, 1: string[]} [$canonicalRelation, $hiddenFields]
+     *
+     * @throws Exception
+     */
+    private function expandModelRelation( string $modelClass, string $methodName, ?string $explicitAlias = null ): array
+    {
+        $alias = $explicitAlias ?? $methodName;
+        if ( empty( $this->model ) || ! class_exists( $this->model ) ) {
+            throw new Exception(
+                __( 'Cannot resolve model-based relations without a model defined on the CRUD instance.' )
+            );
+        }
+
+        $mainModel = new ( $this->model );
+
+        if ( ! method_exists( $mainModel, $methodName ) ) {
+            throw new Exception( sprintf(
+                __( 'The model "%s" does not have a relationship method named "%s".' ),
+                $this->model,
+                $methodName
+            ) );
+        }
+
+        $relation = $mainModel->$methodName();
+
+        if (
+            ! ( $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo ) &&
+            ! ( $relation instanceof \Illuminate\Database\Eloquent\Relations\HasOne )
+        ) {
+            throw new Exception( sprintf(
+                __( 'The relationship "%s" on "%s" must be a BelongsTo or HasOne relation for use in CRUD joins.' ),
+                $methodName,
+                $this->model
+            ) );
+        }
+
+        $relatedModel = $relation->getRelated();
+        $relatedTable = $this->hookTableName( $relatedModel->getTable() );
+        $hidden = $relatedModel->getHidden();
+
+        if ( $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo ) {
+            // Foreign key sits on the main (owning) table.
+            $fk = $this->hookTableName( $this->table ) . '.' . $relation->getForeignKeyName();
+            $ownerKey = $alias . '.' . $relation->getOwnerKeyName();
+        } else {
+            // HasOne: foreign key sits on the related table.
+            $fk = $alias . '.' . $relation->getForeignKeyName();
+            $ownerKey = $this->hookTableName( $this->table ) . '.' . $relation->getLocalKeyName();
+        }
+
+        return [
+            [ $relatedTable . ' as ' . $alias, $fk, '=', $ownerKey ],
+            $hidden,
+        ];
+    }
+
+    /**
      * Will returns the CRUD component slug
      */
     public function getSlug(): string
@@ -587,6 +771,8 @@ class CrudService
      */
     public function getEntries( $config = [] ): array
     {
+        $this->allowedTo( 'read' );
+
         $table = $this->hookTableName( $this->table );
         $request = app()->make( Request::class );
         $query = DB::table( $table );
@@ -616,9 +802,16 @@ class CrudService
         }
 
         /**
+         * Normalise relations once: this converts model-based entries
+         * (e.g. [User::class, 'user']) into canonical 4-element arrays
+         * and collects hidden fields per alias for SELECT-level filtering.
+         */
+        [ $normalizedRelations, $hiddenByAlias ] = $this->resolveRelations();
+
+        /**
          * Let's loop relation if they exists
          */
-        if ( $this->getRelations() ) {
+        if ( $normalizedRelations ) {
             /**
              * we're extracting the joined table
              * to make sure building the alias works
@@ -626,7 +819,7 @@ class CrudService
             $relations = [];
             $relatedTables = [];
 
-            collect( $this->getRelations() )->each( function ( $relation ) use ( &$relations, &$relatedTables ) {
+            collect( $normalizedRelations )->each( function ( $relation ) use ( &$relations, &$relatedTables ) {
                 if ( isset( $relation[0] ) ) {
                     if ( ! is_array( $relation[0] ) ) {
                         $relations[] = $relation;
@@ -682,14 +875,18 @@ class CrudService
                     $hasAlias[0] = $this->hookTableName( $hasAlias[0] ); // make the table name hookable
                     $aliasName = $hasAlias[1] ?? false; // for aliased relation. The pick use the alias as a reference.
                     $columns = collect( Schema::getColumnListing( count( $hasAlias ) === 2 ? trim( $hasAlias[0] ) : $relation[0] ) )
-                        ->filter( function ( $column ) use ( $pick, $table, $aliasName ) {
-                            $picked = $pick[$aliasName ? trim( $aliasName ) : $table] ?? [];
+                        ->filter( function ( $column ) use ( $pick, $table, $aliasName, $hiddenByAlias ) {
+                            $alias = $aliasName ? trim( $aliasName ) : $table;
+                            $picked = $pick[$alias] ?? [];
+
                             if ( ! empty( $picked ) ) {
-                                if ( in_array( $column, $picked ) ) {
-                                    return true;
-                                } else {
-                                    return false;
-                                }
+                                // When an explicit pick list is defined, it takes full control.
+                                return in_array( $column, $picked );
+                            }
+
+                            // Exclude columns declared as hidden on the related Eloquent model.
+                            if ( in_array( $column, $hiddenByAlias[$alias] ?? [] ) ) {
+                                return false;
                             }
 
                             return true;
@@ -724,7 +921,7 @@ class CrudService
              */
             $query = call_user_func_array( [$query, 'select'], $select );
 
-            foreach ( $this->getRelations() as $junction => $relation ) {
+            foreach ( $normalizedRelations as $junction => $relation ) {
                 /**
                  * if no junction statement is provided
                  * then let's make it inner by default
@@ -732,68 +929,45 @@ class CrudService
                 $junction = is_numeric( $junction ) ? 'join' : $junction;
 
                 if ( in_array( $junction, ['join', 'leftJoin', 'rightJoin', 'crossJoin'] ) ) {
-                    if ( $junction !== 'join' ) {
-                        foreach ( $relation as $junction_relation ) {
-                            $hasAlias = explode( ' as ', $junction_relation[0] );
-                            $hasAlias[0] = $this->hookTableName( $hasAlias[0] );
+                    /**
+                     * When the junction is a named key (e.g. 'leftJoin', or an explicit 'join' => [...]),
+                     * $relation is a group (array of relation arrays) and must be iterated.
+                     * When the junction was numeric it was normalised to 'join' above, but $relation
+                     * is already the flat 4-element array — detect that by checking whether the first
+                     * element itself is an array.
+                     */
+                    // If the first element is itself an array, $relation is a group (named junction
+                    // or explicit 'join' => [...]).  Otherwise it is a single flat 4-element array
+                    // (numeric key normalised to 'join') — wrap it so the loop below is uniform.
+                    $relationGroup = is_array( $relation[0] ) ? $relation : [ $relation ];
 
-                            /**
-                             * makes sure first table can be filtered. We should also check
-                             * if the column are actual column and not aliases
-                             */
-                            $relatedTableParts = explode( '.', $junction_relation[1] );
-
-                            if ( count( $relatedTableParts ) === 2 && in_array( $relatedTableParts[0], $relatedTables ) ) {
-                                $junction_relation[1] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
-                            }
-
-                            /**
-                             * makes sure the second table can be filtered. We should also check
-                             * if the column are actual column and not aliases
-                             */
-                            $relatedTableParts = explode( '.', $junction_relation[3] );
-                            if ( count( $relatedTableParts ) === 2 && in_array( $relatedTableParts[0], $relatedTables ) ) {
-                                $junction_relation[3] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
-                            }
-
-                            if ( count( $hasAlias ) === 2 ) {
-                                $query->$junction( trim( $hasAlias[0] ) . ' as ' . trim( $hasAlias[1] ), $junction_relation[1], $junction_relation[2], $junction_relation[3] );
-                            } else {
-                                $query->$junction( $junction_relation[0], $junction_relation[1], $junction_relation[2], $junction_relation[3] );
-                            }
-                        }
-                    } else {
-                        $hasAlias = explode( ' as ', $relation[0] );
+                    foreach ( $relationGroup as $junction_relation ) {
+                        $hasAlias = explode( ' as ', $junction_relation[0] );
                         $hasAlias[0] = $this->hookTableName( $hasAlias[0] );
 
                         /**
-                         * makes sure the first table can be filtered. We should also check
+                         * makes sure first table can be filtered. We should also check
                          * if the column are actual column and not aliases
                          */
-                        $relation[0] = $this->hookTableName( $relation[0] );
+                        $relatedTableParts = explode( '.', $junction_relation[1] );
 
-                        /**
-                         * makes sure the first table can be filtered. We should also check
-                         * if the column are actual column and not aliases
-                         */
-                        $relatedTableParts = explode( '.', $relation[1] );
                         if ( count( $relatedTableParts ) === 2 && in_array( $relatedTableParts[0], $relatedTables ) ) {
-                            $relation[1] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
+                            $junction_relation[1] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
                         }
 
                         /**
                          * makes sure the second table can be filtered. We should also check
                          * if the column are actual column and not aliases
                          */
-                        $relatedTableParts = explode( '.', $relation[3] );
+                        $relatedTableParts = explode( '.', $junction_relation[3] );
                         if ( count( $relatedTableParts ) === 2 && in_array( $relatedTableParts[0], $relatedTables ) ) {
-                            $relation[3] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
+                            $junction_relation[3] = $this->hookTableName( $relatedTableParts[0] ) . '.' . $relatedTableParts[1];
                         }
 
                         if ( count( $hasAlias ) === 2 ) {
-                            $query->$junction( trim( $hasAlias[0] ) . ' as ' . trim( $hasAlias[1] ), $relation[1], $relation[2], $relation[3] );
+                            $query->$junction( trim( $hasAlias[0] ) . ' as ' . trim( $hasAlias[1] ), $junction_relation[1], $junction_relation[2], $junction_relation[3] );
                         } else {
-                            $query->$junction( $relation[0], $relation[1], $relation[2], $relation[3] );
+                            $query->$junction( $junction_relation[0], $junction_relation[1], $junction_relation[2], $junction_relation[3] );
                         }
                     }
                 }
@@ -822,7 +996,7 @@ class CrudService
         }
 
         /**
-         * This section will explicitely add support to CrudScope.
+         * This section will explicitly add support to CrudScope.
          */
         $attributes = $this->reflection->getAttributes( CrudScope::class );
 
@@ -939,7 +1113,7 @@ class CrudService
              */
             if ( $cannotSort ) {
                 throw new NotAllowedException( sprintf(
-                    __( 'Sorting is explicitely disabled for the column "%s".' ),
+                    __( 'Sorting is explicitly disabled for the column "%s".' ),
                     $columns[$request->query( 'active' )]['label']
                 ) );
             }
@@ -975,10 +1149,20 @@ class CrudService
         }
 
         /**
+         * Build the list of fields that should be stripped from every entry.
+         * We merge the CRUD-level $hidden with the model's own $hidden array.
+         */
+        $modelHidden = [];
+        if ( ! empty( $this->model ) && class_exists( $this->model ) ) {
+            $modelHidden = ( new ( $this->model ) )->getHidden();
+        }
+        $hiddenFields = array_unique( array_merge( $this->hidden, $modelHidden ) );
+
+        /**
          * looping entries to provide inline
          * options
          */
-        $entries['data'] = collect( $entries['data'] )->map( function ( $entry ) {
+        $entries['data'] = collect( $entries['data'] )->map( function ( $entry ) use ( $hiddenFields ) {
             $entry = new CrudEntry( (array) $entry );
 
             /**
@@ -1016,6 +1200,14 @@ class CrudService
              */
             if ( method_exists( $this, 'setActions' ) ) {
                 CrudActionEvent::dispatch( $this, $this->setActions( $entry ) );
+            }
+
+            /**
+             * Remove sensitive fields defined either on the CRUD instance
+             * ($hidden property) or on the underlying Eloquent model.
+             */
+            foreach ( $hiddenFields as $field ) {
+                unset( $entry->$field );
             }
 
             return $entry;
@@ -1300,7 +1492,9 @@ class CrudService
             /**
              * We'll provide the form configuration
              */
-            'form' => Hook::filter( get_class( $instance ) . '@getForm', $instance->getForm( $entry ) ),
+            'form' => Hook::filter( get_class( $instance ) . '@getForm', $instance->getForm( $entry ), [
+                'model' => $entry,
+            ] ),
 
             /**
              * We'll now provide the labels
@@ -1378,10 +1572,19 @@ class CrudService
      */
     public function allowedTo( string $permission ): void
     {
-        if ( isset( $this->permissions ) && $this->permissions[$permission] !== false ) {
-            ns()->restrict( $this->permissions[$permission] );
-        } else {
-            throw new NotAllowedException;
+        /**
+         * We'll adopt a quite permissive approach: if no permissions are defined, then we won't perform any check.
+         * If permissions are defined, then we'll check if the specific permission is set to false (explicitly disabled) or if it's a string (permission name) that should be checked.
+         *
+         * The reason of this is to not have any clue on why a request is blocked when we've not defined any permission.
+         * This way, the user can start with a permissive approach and then gradually add restrictions by defining permissions.
+         */
+        if ( isset( $this->permissions ) && isset( $this->permissions[$permission] ) ) {
+            if ( $this->permissions[ $permission ] !== false ) {
+                ns()->restrict( $this->permissions[$permission] );
+            } else {
+                throw new NotAllowedException;
+            }
         }
     }
 
@@ -1428,7 +1631,7 @@ class CrudService
 
     /**
      * We want to restrict links if matching
-     * permissons is explicitely disabled by the user
+     * permissons is explicitly disabled by the user
      */
     public function getFilteredLinks(): array
     {

@@ -3,6 +3,7 @@
 namespace App\Crud;
 
 use App\Models\Provider;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\UsersService;
@@ -45,9 +46,15 @@ class ProviderCrud extends CrudService
 
     /**
      * Adding relation
+     *
+     * Using the model-based grouped syntax: hidden fields on the related
+     * model (e.g. password, remember_token on User) are automatically
+     * excluded from the SELECT without needing an explicit $pick list.
      */
     public $relations = [
-        [ 'nexopos_users', 'nexopos_users.id', '=', 'nexopos_providers.author' ],
+        'leftJoin' => [
+            'user' => [ User::class, 'user' ],
+        ],
     ];
 
     /**
@@ -212,8 +219,6 @@ class ProviderCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -251,8 +256,6 @@ class ProviderCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -276,7 +279,7 @@ class ProviderCrud extends CrudService
     public function beforeDelete( $namespace, $id, $model )
     {
         if ( $namespace == 'ns.providers' ) {
-            $this->allowedTo( 'delete' );
+            //
         }
     }
 
@@ -311,7 +314,7 @@ class ProviderCrud extends CrudService
                 '$direction' => '',
                 '$sort' => false,
             ],
-            'nexopos_users_username' => [
+            'user_username' => [
                 'label' => __( 'Author' ),
                 '$direction' => '',
                 '$sort' => false,

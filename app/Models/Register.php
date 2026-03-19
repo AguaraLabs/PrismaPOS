@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property mixed          $status
  * @property string         $description
  * @property int            $used_by
- * @property int            $author
+ * @property int            $author_id
  * @property float          $balance
  * @property mixed          $uuid
  * @property \Carbon\Carbon $created_at
@@ -58,5 +58,15 @@ class Register extends NsModel
     public function history()
     {
         return $this->hasMany( RegisterHistory::class, 'register_id', 'id' );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
+    }
+
+    public function cashier()
+    {
+        return $this->belongsTo( User::class, 'used_by' );
     }
 }

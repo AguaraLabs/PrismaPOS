@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property mixed          $delivery_status
  * @property int            $total_items
  * @property string         $description
- * @property int            $author
+ * @property int            $author_id
  * @property mixed          $uuid
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
@@ -46,7 +46,7 @@ class Procurement extends NsModel
     /**
      * this status state when the procurement has
      * moved from the "draft" status to pending. Which
-     * means it's ready to be processed or it's being proceesed.
+     * means it's ready to be processed or it's being processed.
      *
      * @param string
      */
@@ -110,5 +110,10 @@ class Procurement extends NsModel
     public function scopeAutoApproval( $query )
     {
         return $query->where( 'automatic_approval', true );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
     }
 }

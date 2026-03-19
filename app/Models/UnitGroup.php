@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int            $id
  * @property string         $uuid
  * @property string         $description
- * @property int            $author
+ * @property int            $author_id
  * @property \Carbon\Carbon $updated_at
  */
 class UnitGroup extends NsModel
@@ -35,5 +35,10 @@ class UnitGroup extends NsModel
     public function units()
     {
         return $this->hasMany( Unit::class, 'group_id' );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
     }
 }

@@ -12,6 +12,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductUnitQuantity;
 use App\Models\TaxGroup;
 use App\Models\UnitGroup;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\Helper;
@@ -64,7 +65,9 @@ class ProductCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_products.author', '=', 'user.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         'leftJoin' => [
             [ 'nexopos_products_categories as category', 'nexopos_products.category_id', '=', 'category.id' ],
             [ 'nexopos_products as parent', 'nexopos_products.parent_id', '=', 'parent.id' ],
@@ -384,7 +387,7 @@ class ProductCrud extends CrudService
                                     'label' => __( 'Pin Product' ),
                                     'value' => $entry->pinned ?? false,
                                 ], [
-                                    'type' => 'textarea',
+                                    'type' => 'ckeditor',
                                     'name' => 'description',
                                     'label' => __( 'Description' ),
                                     'value' => $entry->description ?? '',
@@ -475,7 +478,7 @@ class ProductCrud extends CrudService
                                                 return $field;
                                             } );
 
-                                            $optionLabel = __( 'Unammed Section' );
+                                            $optionLabel = __( 'Unnamed Section' );
 
                                             if ( $field->isNotEmpty() ) {
                                                 $option = collect( $field[0][ 'options' ] )->filter( fn( $option ) => $option[ 'value' ] == $field[0][ 'value' ] );
@@ -630,8 +633,6 @@ class ProductCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -669,8 +670,6 @@ class ProductCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -701,9 +700,7 @@ class ProductCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model )
     {
-        if ( $namespace == 'ns.products' ) {
-            $this->allowedTo( 'delete' );
-        }
+        // ...
     }
 
     /**

@@ -60,7 +60,7 @@ class HoldOrderCrud extends CrudService
      */
     public $relations = [
         [ 'nexopos_users as customer', 'customer.id', '=', 'nexopos_orders.customer_id' ],
-        [ 'nexopos_users as user', 'nexopos_orders.author', '=', 'user.id' ],
+        [ 'nexopos_users as user', 'nexopos_orders.author_id', '=', 'user.id' ],
     ];
 
     /**
@@ -173,9 +173,9 @@ class HoldOrderCrud extends CrudService
                     'fields' => [
                         [
                             'type' => 'text',
-                            'name' => 'author',
+                            'name' => 'author_id',
                             'label' => __( 'Author' ),
-                            'value' => $entry->author ?? '',
+                            'value' => $entry->author_id ?? '',
                         ], [
                             'type' => 'text',
                             'name' => 'change',
@@ -337,12 +337,6 @@ class HoldOrderCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -380,12 +374,6 @@ class HoldOrderCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -418,11 +406,7 @@ class HoldOrderCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

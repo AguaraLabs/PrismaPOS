@@ -24,7 +24,7 @@ if ( Auth::check() ) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ App\Services\Helper::pageTitle( $title ?? __( 'Unamed Page' ) ) }}</title>
+    <title>{{ App\Services\Helper::pageTitle( $title ?? __( 'Unnamed Page' ) ) }}</title>
     @include( 'layout._header-injection')
     @vite([
         'resources/scss/line-awesome/1.3.0/scss/line-awesome.scss',
@@ -92,7 +92,13 @@ if ( Auth::check() ) {
                     @endif
                 </div>
                 <div class="p-2 text-xs flex justify-end text-gray-500">
+                    @if( $latestVersion = ns()->option->get( 'ns_latest_version' ) )
+                    <a href="https://my.nexopos.com/redirect/latest" target="_blank" class="hover:text-blue-400 ml-2 inline-block">
+                        {{ sprintf( __( 'Download NexoPOS %s' ), $latestVersion ) }}
+                    </a>
+                    @else
                     {!! Hook::filter( 'ns-footer-signature', sprintf( __( 'You\'re using <a tager="_blank" href="%s" class="hover:text-blue-400 mx-1 inline-block">NexoPOS %s</a>' ), 'https://my.nexopos.com/en', config( 'nexopos.version' ) ) ) !!}
+                    @endif
                 </div>
             </div>
             @endif

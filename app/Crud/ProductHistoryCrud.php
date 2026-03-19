@@ -63,7 +63,7 @@ class ProductHistoryCrud extends CrudService
         [ 'nexopos_products as products', 'nexopos_products_histories.product_id', '=', 'products.id' ],
         [ 'nexopos_units as units', 'nexopos_products_histories.unit_id', '=', 'units.id' ],
         'leftJoin' => [
-            [ 'nexopos_users as users', 'nexopos_products_histories.author', '=', 'users.id' ],
+            [ User::class, 'user' ],
             [ 'nexopos_procurements as procurements', 'nexopos_products_histories.procurement_id', '=', 'procurements.id' ],
             [ 'nexopos_orders as orders', 'nexopos_products_histories.order_id', '=', 'orders.id' ],
         ],
@@ -174,9 +174,9 @@ class ProductHistoryCrud extends CrudService
                             'value' => $entry->after_quantity ?? '',
                         ], [
                             'type' => 'text',
-                            'name' => 'author',
+                            'name' => 'author_id',
                             'label' => __( 'Author' ),
-                            'value' => $entry->author ?? '',
+                            'value' => $entry->author_id ?? '',
                         ], [
                             'type' => 'text',
                             'name' => 'before_quantity',
@@ -283,12 +283,6 @@ class ProductHistoryCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -326,12 +320,6 @@ class ProductHistoryCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -364,11 +352,7 @@ class ProductHistoryCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

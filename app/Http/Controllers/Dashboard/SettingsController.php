@@ -12,15 +12,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Requests\SettingsRequest;
 use App\Services\SettingsPage;
 use Exception;
-use Illuminate\Support\Facades\Gate;
 use TorMorten\Eventy\Facades\Events as Hook;
 
 class SettingsController extends DashboardController
 {
     public function getSettings( $identifier )
     {
-        Gate::allows( 'manages.options' );
-
         return $this->handleDefaultSettings( $identifier );
     }
 

@@ -17,6 +17,7 @@ use App\Events\TransactionBeforeUpdateEvent;
 use App\Models\Role;
 use App\Models\Transaction;
 use App\Models\TransactionAccount;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\Helper;
@@ -62,7 +63,9 @@ class TransactionCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_transactions.author', '=', 'user.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_transactions_accounts as transactions_accounts', 'transactions_accounts.id', '=', 'nexopos_transactions.account_id' ],
     ];
 
@@ -312,8 +315,6 @@ class TransactionCrud extends CrudService
      */
     public function beforePost( $inputs )
     {
-        $this->allowedTo( 'create' );
-
         TransactionBeforeCreatedEvent::dispatch( $inputs );
 
         return $inputs;
@@ -357,8 +358,6 @@ class TransactionCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         TransactionBeforeUpdateEvent::dispatch( $entry, $request );
 
         return $request;
@@ -386,8 +385,6 @@ class TransactionCrud extends CrudService
     public function beforeDelete( $namespace, $id, $model )
     {
         if ( $namespace == 'ns.transactions' ) {
-            $this->allowedTo( 'delete' );
-
             /**
              * Delete all transaction history
              */

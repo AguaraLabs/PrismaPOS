@@ -73,12 +73,14 @@ class GlobalProductHistoryCrud extends CrudService
 
     /**
      * Adding relation
-     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author' ]
+     * Example : [ 'nexopos_users as user', 'user.id', '=', 'nexopos_orders.author_id' ]
      *
      * @param  array
      */
     public $relations = [
-        [ 'nexopos_users as user', 'user.id', '=', 'nexopos_products_histories.author' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_products as product', 'product.id', '=', 'nexopos_products_histories.product_id' ],
         [ 'nexopos_units as unit', 'unit.id', '=', 'nexopos_products_histories.unit_id' ],
         'leftJoin' => [
@@ -223,13 +225,7 @@ class GlobalProductHistoryCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
-        return $request;
+        // ...
     }
 
     /**
@@ -266,12 +262,6 @@ class GlobalProductHistoryCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -304,11 +294,7 @@ class GlobalProductHistoryCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 

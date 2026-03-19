@@ -59,7 +59,7 @@ class ScaleRangeCrud extends CrudService
     /**
      * Fields which will be filled during post/put
      */
-    public $fillable = [ 'name', 'range_start', 'range_end', 'next_scale_plu', 'description', 'author' ];
+    public $fillable = [ 'name', 'range_start', 'range_end', 'next_scale_plu', 'description', 'author_id' ];
 
     /**
      * Define columns and how it is structured.
@@ -210,7 +210,6 @@ class ScaleRangeCrud extends CrudService
      */
     public function beforePost( $inputs )
     {
-        $this->allowedTo( 'create' );
         $this->validateRangeOverlap( $inputs );
 
         return $inputs;
@@ -221,7 +220,6 @@ class ScaleRangeCrud extends CrudService
      */
     public function beforePut( $inputs, ?ScaleRange $entry = null )
     {
-        $this->allowedTo( 'update' );
         $this->validateRangeOverlap( $inputs, $entry );
 
         return $inputs;

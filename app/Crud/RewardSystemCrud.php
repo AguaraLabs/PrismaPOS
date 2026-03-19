@@ -5,6 +5,7 @@ namespace App\Crud;
 use App\Models\Coupon;
 use App\Models\RewardSystem;
 use App\Models\RewardSystemRule;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\Helper;
@@ -52,12 +53,14 @@ class RewardSystemCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users', 'nexopos_rewards_system.author', '=', 'nexopos_users.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         [ 'nexopos_coupons as coupon', 'coupon.id', '=', 'nexopos_rewards_system.coupon_id' ],
     ];
 
     public $pick = [
-        'nexopos_users' => [ 'username' ],
+        'user' => [ 'username' ],
         'coupon' => [ 'name' ],
     ];
 
@@ -248,7 +251,7 @@ class RewardSystemCrud extends CrudService
             $newRule->to = $rule[ 'to' ];
             $newRule->reward = $rule[ 'reward' ];
             $newRule->reward_id = $entry->id;
-            $newRule->author = Auth::id();
+            $newRule->author_id = Auth::id();
             $newRule->save();
         }
     }
@@ -305,7 +308,7 @@ class RewardSystemCrud extends CrudService
                 $existingRule->from = $rule[ 'from' ];
                 $existingRule->to = $rule[ 'to' ];
                 $existingRule->reward = $rule[ 'reward' ];
-                $existingRule->author = Auth::id();
+                $existingRule->author_id = Auth::id();
                 $existingRule->save();
             } else {
                 $newRule = new RewardSystemRule;
@@ -313,7 +316,7 @@ class RewardSystemCrud extends CrudService
                 $newRule->to = $rule[ 'to' ];
                 $newRule->reward = $rule[ 'reward' ];
                 $newRule->reward_id = $entry->id;
-                $newRule->author = Auth::id();
+                $newRule->author_id = Auth::id();
                 $newRule->save();
             }
         }
@@ -326,9 +329,8 @@ class RewardSystemCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id )
     {
-        if ( $namespace == 'ns.rewards_system' ) {
-            $this->allowedTo( 'delete' );
-        }
+        // ...
+
     }
 
     /**
@@ -336,20 +338,14 @@ class RewardSystemCrud extends CrudService
      *
      * @return void
      */
-    public function beforePost( $request )
-    {
-        $this->allowedTo( 'create' );
-    }
+    public function beforePost( $request ) {}
 
     /**
      * Before Delete
      *
      * @return void
      */
-    public function beforePut( $request, $rewardSystem )
-    {
-        $this->allowedTo( 'update' );
-    }
+    public function beforePut( $request, $rewardSystem ) {}
 
     /**
      * Define Columns
@@ -372,7 +368,7 @@ class RewardSystemCrud extends CrudService
                 '$direction' => '',
                 '$sort' => false,
             ],
-            'nexopos_users_username' => [
+            'user_username' => [
                 'label' => __( 'Author' ),
                 '$direction' => '',
                 '$sort' => false,

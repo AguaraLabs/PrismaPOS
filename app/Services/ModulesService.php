@@ -1190,7 +1190,7 @@ class ModulesService
     private function __runModuleMigration( string $moduleNamespace ): array
     {
         /**
-         * Load module since it has'nt yet been added to the
+         * Load module since it hasn't yet been added to the
          * runtime
          */
         $this->load( $moduleNamespace );
@@ -1329,6 +1329,13 @@ class ModulesService
                 return in_array( $file, $only );
             } )->toArray();
         }
+
+        /**
+         * Sort migrations in reverse order for rollback
+         * This ensures that dependent migrations (foreign keys, constraints)
+         * are rolled back before their dependencies, preventing constraint violations.
+         */
+        rsort( $migrationFiles );
 
         /**
          * Checks if migration files exists
@@ -1852,6 +1859,13 @@ class ModulesService
     {
         $migrations = $this->getAllMigrations( $this->get( $namespace ) );
 
+        /**
+         * Sort migrations in reverse order for rollback
+         * This ensures that dependent migrations (foreign keys, constraints)
+         * are rolled back before their dependencies, preventing constraint violations.
+         */
+        rsort( $migrations );
+
         if ( ! empty( $migrations ) ) {
             foreach ( $migrations as $file ) {
                 $this->dropMigration( $namespace, $file );
@@ -1861,7 +1875,7 @@ class ModulesService
 
     /**
      * Prevents module management when
-     * it's explicitely disabled from the settings
+     * it's explicitly disabled from the settings
      */
     public function checkManagementStatus(): void
     {

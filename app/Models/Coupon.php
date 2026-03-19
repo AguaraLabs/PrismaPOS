@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property \Carbon\Carbon $valid_hours_start
  * @property \Carbon\Carbon $valid_hours_end
  * @property float          $limit_usage
- * @property int            $author
+ * @property int            $author_id
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  */
@@ -70,5 +70,10 @@ class Coupon extends NsModel
             foreignKey: 'coupon_id',
             localKey: 'id'
         );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo( User::class, 'author_id' );
     }
 }

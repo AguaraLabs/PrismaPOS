@@ -69,9 +69,11 @@ class RegisterCrud extends CrudService
      * @param  array
      */
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_registers.author', '=', 'user.id' ],
+        'join' => [
+            [ User::class, 'user' ],
+        ],
         'leftJoin' => [
-            [ 'nexopos_users as cashier', 'nexopos_registers.used_by', '=', 'cashier.id' ],
+            [ User::class, 'cashier' ],
         ],
     ];
 
@@ -229,12 +231,6 @@ class RegisterCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -272,12 +268,6 @@ class RegisterCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -310,12 +300,6 @@ class RegisterCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
-
             if ( $model->status === Register::STATUS_OPENED ) {
                 throw new NotAllowedException( __( 'Unable to delete a register that is currently in use' ) );
             }

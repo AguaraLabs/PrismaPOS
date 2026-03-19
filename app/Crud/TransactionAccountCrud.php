@@ -52,7 +52,7 @@ class TransactionAccountCrud extends CrudService
      * Adding relation
      */
     public $relations = [
-        [ 'nexopos_users', 'nexopos_transactions_accounts.author', '=', 'nexopos_users.id' ],
+        [ 'nexopos_users', 'nexopos_transactions_accounts.author_id', '=', 'nexopos_users.id' ],
         'leftJoin' => [
             [ 'nexopos_transactions_accounts as subaccount', 'subaccount.id', '=', 'nexopos_transactions_accounts.sub_category_id' ],
         ],
@@ -259,8 +259,6 @@ class TransactionAccountCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        $this->allowedTo( 'create' );
-
         return $request;
     }
 
@@ -298,8 +296,6 @@ class TransactionAccountCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        $this->allowedTo( 'update' );
-
         return $request;
     }
 
@@ -322,9 +318,7 @@ class TransactionAccountCrud extends CrudService
      */
     public function beforeDelete( $namespace, $id, $model )
     {
-        if ( $namespace == 'ns.transactions-accounts' ) {
-            $this->allowedTo( 'delete' );
-        }
+        // ...
     }
 
     /**

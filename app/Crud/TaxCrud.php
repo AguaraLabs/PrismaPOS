@@ -5,6 +5,7 @@ namespace App\Crud;
 use App\Exceptions\NotAllowedException;
 use App\Models\Tax;
 use App\Models\TaxGroup;
+use App\Models\User;
 use App\Services\CrudEntry;
 use App\Services\CrudService;
 use App\Services\Helper;
@@ -64,7 +65,7 @@ class TaxCrud extends CrudService
     ];
 
     public $relations = [
-        [ 'nexopos_users as user', 'nexopos_taxes.author', '=', 'user.id' ],
+        [ 'nexopos_users as user', 'nexopos_taxes.author_id', '=', 'user.id' ],
         [ 'nexopos_taxes_groups as parent', 'nexopos_taxes.tax_group_id', '=', 'parent.id' ],
     ];
 
@@ -225,12 +226,6 @@ class TaxCrud extends CrudService
      */
     public function beforePost( $request )
     {
-        if ( $this->permissions[ 'create' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'create' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -268,12 +263,6 @@ class TaxCrud extends CrudService
      */
     public function beforePut( $request, $entry )
     {
-        if ( $this->permissions[ 'update' ] !== false ) {
-            ns()->restrict( $this->permissions[ 'update' ] );
-        } else {
-            throw new NotAllowedException;
-        }
-
         return $request;
     }
 
@@ -306,11 +295,7 @@ class TaxCrud extends CrudService
              *      'message'   =>  __( 'You\re not allowed to do that.' )
              *  ], 403 );
              **/
-            if ( $this->permissions[ 'delete' ] !== false ) {
-                ns()->restrict( $this->permissions[ 'delete' ] );
-            } else {
-                throw new NotAllowedException;
-            }
+            //
         }
     }
 
