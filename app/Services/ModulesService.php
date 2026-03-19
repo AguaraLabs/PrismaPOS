@@ -1023,7 +1023,7 @@ class ModulesService
                     }
                 } else {
                     // Linux: Check if the symlink target exists
-                    if ( ! file_exists( readlink( $linkPath ) ) ) {
+                    if ( ! file_exists( \readlink( $linkPath ) ) ) {
                         unlink( $linkPath );
                     }
                 }
@@ -1105,7 +1105,7 @@ class ModulesService
                         }
                     } else {
                         // Linux: Check if the symlink target exists
-                        if ( ! file_exists( readlink( $linkPath ) ) ) {
+                        if ( ! file_exists( \readlink( $linkPath ) ) ) {
                             unlink( $linkPath );
                         }
                     }
