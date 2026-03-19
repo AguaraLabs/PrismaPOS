@@ -286,7 +286,7 @@ class DoctorService
             }
 
             if ( is_link( $dir . '/' . $file ) ) {
-                if ( ! file_exists( \readlink( $dir . '/' . $file ) ) ) {
+                if ( ! file_exists( readlink( $dir . '/' . $file ) ) ) {
                     $deleted[] = $dir . '/' . $file;
                     unlink( $dir . '/' . $file );
                 }
